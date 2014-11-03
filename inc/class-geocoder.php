@@ -31,8 +31,8 @@ class GeoCoder {
 		require_once plugin_dir_path( __FILE__ ) . 'class-request.php';
 		$request = new Request( $url, $this->ip_address );
 
-		//return $request->get_data();
-		return $request->remote_request();
+		return $request->get_data();
+		//return $request->remote_request(); // use this to test without transients
 
 	}
 
