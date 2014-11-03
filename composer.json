@@ -1,0 +1,21 @@
+{
+    "name": "pauldewouters/hm-lang-detect",
+    "description": "Detect region and prompt language switch.",
+    "license": "GPL-2.0+",
+    "config": {
+        "vendor-dir": "inc/lib"
+    },
+    "require": {
+        "markjaquith/wp-tlc-transients": "dev-master"
+    },
+    "authors": [
+        {
+            "name": "Paul de Wouters",
+            "email": "paul@hmn.md"
+        },
+        {
+            "name" : "Human Made Limited",
+            "email": "hello@humanmade.co.uk"
+        }
+    ]
+}
