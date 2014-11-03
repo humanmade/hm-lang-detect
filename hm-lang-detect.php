@@ -48,8 +48,8 @@ class HM_Lang_Detect {
 		require_once plugin_dir_path( __FILE__ ) . 'inc/lib/autoload.php';
 		require_once plugin_dir_path( __FILE__ ) . 'inc/class-geocoder.php';
 
-		//$ip_address = $_SERVER['REMOTE_ADDR'];
-		$ip_address = '5.39.127.35';
+		$ip_address = $_SERVER['REMOTE_ADDR'];
+		//$ip_address = '5.39.127.35' // german IP for testing;
 
 		$this->geocoder = new \HMLanguageDetect\GeoCoder( $ip_address );
 		$suggested_lang = $this->geocoder->get_country_lang();
