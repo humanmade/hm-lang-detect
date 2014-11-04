@@ -4,18 +4,23 @@ class GeoCoder {
 
 	protected $ip_address;
 
+	protected $geoip_data = array();
+
 	const API_DOMAIN = 'freegeoip.net';
 
 	const RESPONSE_FORMAT = 'json';
 
-	protected $geoip_data = array();
-
 	public function __construct( $ip_address ) {
 
-		if ( false === ( $this->ip_address = filter_var( $ip_address, FILTER_VALIDATE_IP ) ) ) {
-			throw new \Exception( 'Invalid IP address' );
-		}
+		$this->ip_address = $ip_address;
 
+	}
+
+	public function get_api_url() {
+		return 'http://'
+		       . self::API_DOMAIN . '/'
+		       . self::RESPONSE_FORMAT . '/'
+		       . $this->ip_address;
 	}
 
 	/**
@@ -25,46 +30,17 @@ class GeoCoder {
 	 */
 	public function get_visitor_geoip_data() {
 
-		$url = 'http://';
-		$url .= implode( '/', array( self::API_DOMAIN, self::RESPONSE_FORMAT, $this->ip_address ) );
+		$response = wp_remote_get( $this->get_api_url() );
 
-		require_once plugin_dir_path( __FILE__ ) . 'class-request.php';
-		$request = new Request( $url, $this->ip_address );
-
-		return $request->get_data();
-		//return $request->remote_request(); // use this to test without transients
-
-	}
-
-	public function get_visitor_country() {
-
-		$current_visitor_data = $this->get_visitor_geoip_data();
-		if ( ! empty( $current_visitor_data ) ) {
-			return $current_visitor_data->country_name;
+		if ( is_wp_error( $response ) ) {
+			return $response;
 		}
 
-		return '';
-	}
+		$response = wp_remote_retrieve_body( $response );
 
-	public function get_country_lang() {
+		$response = json_decode( $response );
 
-		$lang = 'en';
+		update_option( 'visitor_geoip_' . $this->ip_address, $response );
 
-		switch ( $this->get_visitor_country() ) {
-			case 'Belgium':
-			case 'France':
-				$lang = array( 'fr' => 'French' );
-				break;
-
-			case 'Germany':
-				$lang = array( 'de' => 'Deutsch' );
-				break;
-
-			default:
-				$lang = array( 'en' => 'English' );
-				break;
-		}
-
-		return $lang;
 	}
 }

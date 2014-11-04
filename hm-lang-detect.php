@@ -2,26 +2,52 @@
 /*
 Plugin Name: Hm-lang-detect
 Version: 0.1-alpha
-Description: PLUGIN DESCRIPTION HERE
-Author: YOUR NAME HERE
-Author URI: YOUR SITE HERE
-Plugin URI: PLUGIN SITE HERE
+Description: Detect and suggest language
+Author: Human Made Limited
+Author URI: http://hmn.md
+Plugin URI: https://github.com/humanmade/hm-lang-detect
 Text Domain: hm-lang-detect
 Domain Path: /languages
 */
 
+/**
+ * Class HM_Lang_Detect
+ */
 class HM_Lang_Detect {
 
+	/**
+	 * @var
+	 */
 	static protected $instance;
 
+	/**
+	 * @var
+	 */
 	protected $geocoder;
 
+	/**
+	 * @var array|mixed|void
+	 */
+	protected $supported_languages = array();
+
+	/**
+	 * Creates an instance of HM_Lang_Detect
+	 */
 	protected function __construct() {
+
+		$this->supported_languages = apply_filters( 'hm_supported_languages', array(
+			'en' => 'English',
+			'fr' => 'Français',
+			'de' => 'Deutsch',
+		) );
 
 		add_action( 'plugins_loaded', array( $this, 'plugins_loaded' ) );
 
 	}
 
+	/**
+	 * Hook into WordPress
+	 */
 	public function plugins_loaded() {
 
 		add_action( 'admin_post_no_priv_switch_language', array( $this, 'switch_language' ) );
@@ -29,12 +55,49 @@ class HM_Lang_Detect {
 
 		add_action( 'wp_enqueue_scripts', array( $this, 'scripts' ) );
 
+		add_action( 'init', array( $this, 'schedule_backdrop_task' ) );
+
+		add_filter( 'body_classes', 'body_classes' );
+
 		add_filter( 'heartbeat_received', array( $this, 'heartbeat_receive' ), 10, 2 );
 		add_filter( 'heartbeat_received_no_priv', array( $this, 'heartbeat_receive' ), 10, 2 );
 
-		add_action( 'wp_ajax_render_notice', array( $this, 'ajax_render_notice' ) );
 	}
 
+	/**
+	 * Schedule the geocoding task.
+	 */
+	public function schedule_backdrop_task() {
+
+		require_once plugin_dir_path( __FILE__ ) . 'inc/class-geocoder.php';
+
+		require_once plugin_dir_path( __FILE__ ) . 'inc/lib/backdrop/hm-backdrop.php';
+
+		$this->geocoder = new \HMLanguageDetect\GeoCoder( $this->get_ip_address() );
+
+		if ( ! get_option( 'visitor_geoip_' . $this->get_ip_address() ) ) {
+			$task = new \HM\Backdrop\Task( array( $this->geocoder, 'get_visitor_geoip_data' ) );
+			$task->schedule();
+		}
+
+	}
+
+	/**
+	 * Add language class to body
+	 *
+	 * @param $classes
+	 *
+	 * @return array
+	 */
+	public function body_classes( $classes ) {
+
+		$classes[] = $this->get_visitor_lang();
+		return $classes;
+	}
+
+	/**
+	 * @return HM_Lang_Detect
+	 */
 	public static function get_instance() {
 
 		if ( ! ( self::$instance instanceof HM_Lang_Detect ) ) {
@@ -43,31 +106,11 @@ class HM_Lang_Detect {
 		return self::$instance;
 	}
 
-	public function detect() {
-
-		require_once plugin_dir_path( __FILE__ ) . 'inc/lib/autoload.php';
-		require_once plugin_dir_path( __FILE__ ) . 'inc/class-geocoder.php';
-
-		$ip_address = $_SERVER['REMOTE_ADDR'];
-		//$ip_address = '5.39.127.35' // german IP for testing;
-
-		$this->geocoder = new \HMLanguageDetect\GeoCoder( $ip_address );
-		$suggested_lang = $this->geocoder->get_country_lang();
-
-		global $wp;
-		$current_lang = ( 0 < strlen( $wp->request ) ) ? $wp->request : 'en';
-
-		// If we're not on the home page already and not on a lang page, redirect to home
-		if (  ! in_array( $current_lang, array( 'en', 'fr', 'de' ) ) ) {
-			wp_redirect( home_url() );exit;
-		}
-
-		if ( $current_lang !== key( $suggested_lang ) ) {
-			$this->prompt_language( $suggested_lang );
-		}
-	}
-
+	/**
+	 * @param $lang
+	 */
 	public function prompt_language( $lang ) {
+
 		// Display a dismissable notice with URL to detected lang page
 		ob_start(); ?>
 		<div class="hm-lang-switcher">
@@ -77,6 +120,9 @@ class HM_Lang_Detect {
 		<?php echo ob_get_clean();
 	}
 
+	/**
+	 * Handle the language switcher interaction
+	 */
 	public function switch_language() {
 
 		check_admin_referer( 'hm_switch_lang_action', 'hm_switch_lang_nonce' );
@@ -88,21 +134,45 @@ class HM_Lang_Detect {
 		wp_redirect( home_url( $lang . '/' ) );exit;
 	}
 
+	/**
+	 * Set the visitor lang preference
+	 * @param $lang
+	 */
 	public function set_visitor_lang( $lang ) {
 
 		setcookie( 'hm_visitor_lang', $lang, time() + ( WEEK_IN_SECONDS * 2 ), COOKIEPATH, COOKIE_DOMAIN );
-
+		$_COOKIE['hm_visitor_lang'] = $lang;
 	}
 
+	/**
+	 * 
+	 */
 	public function get_visitor_lang() {
 
-		return ( isset( $_COOKIE['hm_visitor_lang'] ) ) ? $_COOKIE['hm_visitor_lang'] : '';
+		if ( isset( $_COOKIE['hm_visitor_lang'] ) ) {
+			return $_COOKIE['hm_visitor_lang'];
+		} elseif ( $geoip_data = get_option( 'visitor_geoip_' . $this->get_ip_address() ) ) {
+
+			global $wp;
+			$current_lang = ( 0 < strlen( $wp->request ) ) ? $wp->request : 'en';
+
+			// If we're not on the home page already and not on a lang page, redirect to home
+			if (  ! in_array( $current_lang, array_keys( $this->supported_languages ) ) ) {
+				wp_redirect( home_url() );exit;
+			}
+
+			if ( $current_lang !== key( $this->get_country_lang() ) ) {
+				$this->prompt_language( $this->get_country_lang() );
+			}
+		}
 	}
 
+	/**
+	 *
+	 */
 	public function scripts() {
-		wp_register_script( 'cookies', plugins_url( 'js/cookies.js', __FILE__ ), array(), filemtime( plugin_dir_path( __FILE__ ) . 'js/cookies.js' ) );
 
-		wp_register_script( 'hm-lang-detect', plugins_url( 'js/script.js', __FILE__ ), array( 'jquery', 'cookies' ), filemtime( plugin_dir_path( __FILE__ ) . 'js/script.js' ) );
+		wp_register_script( 'hm-lang-detect', plugins_url( 'js/script.js', __FILE__ ), array( 'jquery', 'heartbeat' ), filemtime( plugin_dir_path( __FILE__ ) . 'js/script.js' ) );
 
 		wp_localize_script( 'hm-lang-detect', 'hm_lang_data', array(
 			'ajaxurl' => admin_url( 'admin-ajax.php' ),
@@ -110,21 +180,12 @@ class HM_Lang_Detect {
 		) );
 
 		wp_enqueue_script( 'hm-lang-detect' );
+
 	}
 
-	public function heartbeat_receive( $response, $data ) {
-
-		if ( 'hm_request_geoip_status' === $data['client'] ) {
-			// is geoip data ready?
-			if ( ! $this->get_visitor_lang() ) {
-				if ( ! is_null( $this->geocoder->get_visitor_geoip_data() ) ) {
-					$data['server'] = 'ready';
-				}
-			}
-		}
-		return $response;
-	}
-
+	/**
+	 *
+	 */
 	public function ajax_render_notice() {
 
 		check_ajax_referer( 'display_switcher' );
@@ -132,19 +193,85 @@ class HM_Lang_Detect {
 		$lang = sanitize_text_field( $_POST['hm_lang'] );
 		$this->prompt_language( $lang ); die;
 	}
-}
-HM_Lang_Detect::get_instance();
 
-function hm_language_detector() {
+	/**
+	 * @return string
+	 */
+	public function get_ip_address() {
 
-	$hm_lang_detect = HM_Lang_Detect::get_instance();
+		if ( ! isset( $_SERVER['REMOTE_ADDR'] ) || false === ( $ip_address = filter_var( $_SERVER['REMOTE_ADDR'], FILTER_VALIDATE_IP ) ) ) {
+			return;
+		}
 
-	if ( ! $hm_lang_detect->get_visitor_lang() ) {
-		$hm_lang_detect->detect();
+		//return $ip_address;
+		return '5.39.127.35'; // german IP for testing
+	}
+
+	/**
+	 * @return string
+	 */
+	public function get_visitor_country() {
+
+		if ( $geoip_data = get_option( 'visitor_geoip_' . $this->get_ip_address() ) ) {
+			return $geoip_data->country_name;
+		}
+
+		return '';
+	}
+
+	/**
+	 * @return array|string
+	 */
+	public function get_country_lang() {
+
+		$lang = 'en';
+
+		switch ( $this->get_visitor_country() ) {
+			case 'Belgium':
+			case 'France':
+				$lang = array( 'fr' => 'French' );
+				break;
+
+			case 'Germany':
+				$lang = array( 'de' => 'Deutsch' );
+				break;
+
+			default:
+				$lang = array( 'en' => 'English' );
+				break;
+		}
+
+		return $lang;
+	}
+
+	/**
+	 * @param $response
+	 * @param $data
+	 *
+	 * @return mixed
+	 */
+	public function heartbeat_receive( $response, $data ) {
+
+		if ( 'hm_request_geoip_status' === $data['client'] ) {
+
+			// if visitor hasnt already set lang pref and suggesed lang is available
+			if ( ! ( isset( $_COOKIE['hm_visitor_lang'] ) ) && $data = get_option( 'visitor_geoip_' . $this->ip_address ) ) {
+				$response['server'] = 'ready';
+			}
+
+			return $response;
+		}
 	}
 }
 
+HM_Lang_Detect::get_instance();
+
+/**
+ *
+ */
 function hm_get_visitor_lang() {
+
 	$hm_lang_detect = HM_Lang_Detect::get_instance();
+
 	return $hm_lang_detect->get_visitor_lang();
 }
