@@ -203,8 +203,8 @@ class HM_Lang_Detect {
 			return;
 		}
 
-		//return $ip_address;
-		return '5.39.127.35'; // german IP for testing
+		return $ip_address;
+		//return '5.39.127.35'; // german IP for testing
 	}
 
 	/**
