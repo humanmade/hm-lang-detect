@@ -252,15 +252,18 @@ class HM_Lang_Detect {
 	 */
 	public function heartbeat_receive( $response, $data ) {
 
-		if ( 'hm_request_geoip_status' === $data['client'] ) {
+		if ( ! is_admin() ) {
 
-			// if visitor hasnt already set lang pref and suggesed lang is available
-			if ( ! ( isset( $_COOKIE['hm_visitor_lang'] ) ) && $data = get_option( 'visitor_geoip_' . $this->ip_address ) ) {
-				$response['server'] = 'ready';
+			if ( 'hm_request_geoip_status' === $data['client'] ) {
+
+				// if visitor hasnt already set lang pref and suggesed lang is available
+				if ( ! ( isset( $_COOKIE['hm_visitor_lang'] ) ) && $data = get_option( 'visitor_geoip_' . $this->ip_address ) ) {
+					$response['server'] = 'ready';
+				}
 			}
-
-			return $response;
 		}
+
+		return $response;
 	}
 }
 
