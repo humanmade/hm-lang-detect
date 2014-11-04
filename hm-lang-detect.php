@@ -2,22 +2,37 @@
 /*
 Plugin Name: Hm-lang-detect
 Version: 0.1-alpha
-Description: PLUGIN DESCRIPTION HERE
-Author: YOUR NAME HERE
-Author URI: YOUR SITE HERE
-Plugin URI: PLUGIN SITE HERE
+Description: Detect and suggest language
+Author: Human Made Limited
+Author URI: http://hmn.md
+Plugin URI: https://github.com/humanmade/hm-lang-detect
 Text Domain: hm-lang-detect
 Domain Path: /languages
 */
 
+/**
+ * Class HM_Lang_Detect
+ */
 class HM_Lang_Detect {
 
+	/**
+	 * @var
+	 */
 	static protected $instance;
 
+	/**
+	 * @var
+	 */
 	protected $geocoder;
 
+	/**
+	 * @var array|mixed|void
+	 */
 	protected $supported_languages = array();
 
+	/**
+	 * Creates an instance of HM_Lang_Detect
+	 */
 	protected function __construct() {
 
 		$this->supported_languages = apply_filters( 'hm_supported_languages', array(
@@ -30,6 +45,9 @@ class HM_Lang_Detect {
 
 	}
 
+	/**
+	 * Hook into WordPress
+	 */
 	public function plugins_loaded() {
 
 		add_action( 'admin_post_no_priv_switch_language', array( $this, 'switch_language' ) );
@@ -46,6 +64,9 @@ class HM_Lang_Detect {
 
 	}
 
+	/**
+	 * Schedule the geocoding task.
+	 */
 	public function schedule_backdrop_task() {
 
 		require_once plugin_dir_path( __FILE__ ) . 'inc/class-geocoder.php';
@@ -61,12 +82,22 @@ class HM_Lang_Detect {
 
 	}
 
+	/**
+	 * Add language class to body
+	 *
+	 * @param $classes
+	 *
+	 * @return array
+	 */
 	public function body_classes( $classes ) {
 
 		$classes[] = $this->get_visitor_lang();
 		return $classes;
 	}
 
+	/**
+	 * @return HM_Lang_Detect
+	 */
 	public static function get_instance() {
 
 		if ( ! ( self::$instance instanceof HM_Lang_Detect ) ) {
@@ -75,6 +106,9 @@ class HM_Lang_Detect {
 		return self::$instance;
 	}
 
+	/**
+	 * @param $lang
+	 */
 	public function prompt_language( $lang ) {
 
 		// Display a dismissable notice with URL to detected lang page
@@ -86,6 +120,9 @@ class HM_Lang_Detect {
 		<?php echo ob_get_clean();
 	}
 
+	/**
+	 * Handle the language switcher interaction
+	 */
 	public function switch_language() {
 
 		check_admin_referer( 'hm_switch_lang_action', 'hm_switch_lang_nonce' );
@@ -97,12 +134,19 @@ class HM_Lang_Detect {
 		wp_redirect( home_url( $lang . '/' ) );exit;
 	}
 
+	/**
+	 * Set the visitor lang preference
+	 * @param $lang
+	 */
 	public function set_visitor_lang( $lang ) {
 
 		setcookie( 'hm_visitor_lang', $lang, time() + ( WEEK_IN_SECONDS * 2 ), COOKIEPATH, COOKIE_DOMAIN );
 		$_COOKIE['hm_visitor_lang'] = $lang;
 	}
 
+	/**
+	 * 
+	 */
 	public function get_visitor_lang() {
 
 		if ( isset( $_COOKIE['hm_visitor_lang'] ) ) {
@@ -123,6 +167,9 @@ class HM_Lang_Detect {
 		}
 	}
 
+	/**
+	 *
+	 */
 	public function scripts() {
 
 		wp_register_script( 'hm-lang-detect', plugins_url( 'js/script.js', __FILE__ ), array( 'jquery', 'heartbeat' ), filemtime( plugin_dir_path( __FILE__ ) . 'js/script.js' ) );
@@ -136,6 +183,9 @@ class HM_Lang_Detect {
 
 	}
 
+	/**
+	 *
+	 */
 	public function ajax_render_notice() {
 
 		check_ajax_referer( 'display_switcher' );
@@ -144,6 +194,9 @@ class HM_Lang_Detect {
 		$this->prompt_language( $lang ); die;
 	}
 
+	/**
+	 * @return string
+	 */
 	public function get_ip_address() {
 
 		if ( ! isset( $_SERVER['REMOTE_ADDR'] ) || false === ( $ip_address = filter_var( $_SERVER['REMOTE_ADDR'], FILTER_VALIDATE_IP ) ) ) {
@@ -154,6 +207,9 @@ class HM_Lang_Detect {
 		return '5.39.127.35'; // german IP for testing
 	}
 
+	/**
+	 * @return string
+	 */
 	public function get_visitor_country() {
 
 		if ( $geoip_data = get_option( 'visitor_geoip_' . $this->get_ip_address() ) ) {
@@ -163,6 +219,9 @@ class HM_Lang_Detect {
 		return '';
 	}
 
+	/**
+	 * @return array|string
+	 */
 	public function get_country_lang() {
 
 		$lang = 'en';
@@ -185,6 +244,12 @@ class HM_Lang_Detect {
 		return $lang;
 	}
 
+	/**
+	 * @param $response
+	 * @param $data
+	 *
+	 * @return mixed
+	 */
 	public function heartbeat_receive( $response, $data ) {
 
 		if ( 'hm_request_geoip_status' === $data['client'] ) {
@@ -201,6 +266,9 @@ class HM_Lang_Detect {
 
 HM_Lang_Detect::get_instance();
 
+/**
+ *
+ */
 function hm_get_visitor_lang() {
 
 	$hm_lang_detect = HM_Lang_Detect::get_instance();
