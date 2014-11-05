@@ -111,14 +111,31 @@ class HM_Lang_Detect {
 	 */
 	public function prompt_language( $lang ) {
 
+		switch ( key( $lang ) ) {
+			case 'en':
+				$notice = 'Based on your location, we suggest viewing this page in ';
+				break;
+			case 'fr':
+				$notice = 'Compte tenu de votre région, nous vous suggérons de visualiser cette page en ';
+				break;
+			case 'de':
+				$notice = 'Basierend auf Ihren Standort, empfehlen wir Ihnen, die Ansicht dieser Seite in ';
+				break;
+			default:
+				$notice = 'Based on your location, we suggest viewing this page in ';
+				break;
+		}
+
 		// Display a dismissable notice with URL to detected lang page
 		ob_start(); ?>
 		<div class="hm-lang-switcher">
-			<p>Based on your location, we suggest viewing this page in <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'switch_language', 'hm_lang' => key( $lang ) ), admin_url( 'admin-post.php' ) ), 'hm_switch_lang_action', 'hm_switch_lang_nonce') ); ?>"><?php echo esc_html( current( $lang ) ); ?></a> <a href="#" id="dismiss">Dismiss</a></p>
+			<p><?php echo $notice; ?> <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'switch_language', 'hm_lang' => key( $lang ) ), admin_url( 'admin-post.php' ) ), 'hm_switch_lang_action', 'hm_switch_lang_nonce') ); ?>"><?php echo esc_html( current( $lang ) ); ?></a> <a href="#" id="dismiss">Dismiss</a></p>
 		</div>
 
 		<?php echo ob_get_clean();
 	}
+
+
 
 	/**
 	 * Handle the language switcher interaction
@@ -203,8 +220,8 @@ class HM_Lang_Detect {
 			return;
 		}
 
-		return $ip_address;
-		//return '5.39.127.35'; // german IP for testing
+		//return $ip_address;
+		return '5.39.127.35'; // german IP for testing
 	}
 
 	/**
