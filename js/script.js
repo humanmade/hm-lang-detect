@@ -12,10 +12,14 @@
             if ( data['server'] === 'ready' ) {
                 // if country has been determined and official lang != current,show notif
                 $.post( hm_lang_data.ajaxurl, { action: 'ajax_render_notice' }, function( data ){
-                    $( '.header .inner' ).prepend( data );
+                    $( '.page-wrap' ).prepend( data );
                 });
             }
 
+        });
+
+        $( document).on( 'click', '#dismiss', function( e, data ){
+            $( '.hm-lang-switcher' ).hide();
         });
 
     });

@@ -114,7 +114,7 @@ class HM_Lang_Detect {
 		// Display a dismissable notice with URL to detected lang page
 		ob_start(); ?>
 		<div class="hm-lang-switcher">
-			<p>Based on your location, we suggest viewing this page in <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'switch_language', 'hm_lang' => key( $lang ) ), admin_url( 'admin-post.php' ) ), 'hm_switch_lang_action', 'hm_switch_lang_nonce') ); ?>"><?php echo esc_html( current( $lang ) ); ?></a></p>
+			<p>Based on your location, we suggest viewing this page in <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'switch_language', 'hm_lang' => key( $lang ) ), admin_url( 'admin-post.php' ) ), 'hm_switch_lang_action', 'hm_switch_lang_nonce') ); ?>"><?php echo esc_html( current( $lang ) ); ?></a> <a href="#" id="dismiss">Dismiss</a></p>
 		</div>
 
 		<?php echo ob_get_clean();
@@ -203,8 +203,8 @@ class HM_Lang_Detect {
 			return;
 		}
 
-		return $ip_address;
-		//return '5.39.127.35'; // german IP for testing
+		//return $ip_address;
+		return '5.39.127.35'; // german IP for testing
 	}
 
 	/**
