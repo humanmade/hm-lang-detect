@@ -157,7 +157,7 @@ class HM_Lang_Detect {
 			$current_lang = ( 0 < strlen( $wp->request ) ) ? $wp->request : 'en';
 
 			// If we're not on the home page already and not on a lang page, redirect to home
-			if (  ! in_array( $current_lang, array_keys( $this->supported_languages ) ) ) {
+			if ( ! is_404() && ! in_array( $current_lang, array_keys( $this->supported_languages ) ) ) {
 				wp_redirect( home_url() );exit;
 			}
 
