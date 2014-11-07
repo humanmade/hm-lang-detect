@@ -50,7 +50,7 @@ class HM_Lang_Detect {
 	 */
 	public function plugins_loaded() {
 
-		add_action( 'admin_post_no_priv_switch_language', array( $this, 'switch_language' ) );
+		add_action( 'admin_post_nopriv_switch_language', array( $this, 'switch_language' ) );
 		add_action( 'admin_post_switch_language', array( $this, 'switch_language' ) );
 
 		add_action( 'wp_enqueue_scripts', array( $this, 'scripts' ) );
@@ -129,7 +129,7 @@ class HM_Lang_Detect {
 		// Display a dismissable notice with URL to detected lang page
 		ob_start(); ?>
 		<div class="hm-lang-switcher">
-			<p><?php echo $notice; ?> <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'switch_language', 'hm_lang' => key( $lang ) ), admin_url( 'admin-post.php' ) ), 'hm_switch_lang_action', 'hm_switch_lang_nonce') ); ?>"><?php echo esc_html( current( $lang ) ); ?></a> <a href="#" id="dismiss">Dismiss</a></p>
+			<p><?php echo $notice; ?> <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'switch_language', 'hm_lang' => key( $lang ) ), admin_url( 'admin-post.php' ) ), 'hm_switch_lang_action', 'hm_switch_lang_nonce' ) ); ?>"><?php echo esc_html( current( $lang ) ); ?></a> <a href="#" id="dismiss">Dismiss</a></p>
 		</div>
 
 		<?php echo ob_get_clean();
@@ -142,13 +142,22 @@ class HM_Lang_Detect {
 	 */
 	public function switch_language() {
 
-		check_admin_referer( 'hm_switch_lang_action', 'hm_switch_lang_nonce' );
+		$redirect = home_url();
 
-		$lang = sanitize_text_field( $_GET['hm_lang'] );
+		if ( wp_verify_nonce( $_GET['hm_switch_lang_nonce'], 'hm_switch_lang_action' ) ) {
 
-		$this->set_visitor_lang( $lang );
+			$lang = sanitize_text_field( $_GET['hm_lang'] );
 
-		wp_redirect( home_url( $lang . '/' ) );exit;
+			$this->set_visitor_lang( $lang );
+
+			$redirect = home_url( $lang . '/' );
+
+		}
+
+		wp_redirect( $redirect, 303 );
+
+		exit;
+
 	}
 
 	/**
@@ -162,7 +171,7 @@ class HM_Lang_Detect {
 	}
 
 	/**
-	 * 
+	 *
 	 */
 	public function get_visitor_lang() {
 
