@@ -50,7 +50,7 @@ class HM_Lang_Detect {
 	 */
 	public function plugins_loaded() {
 
-		add_action( 'admin_post_no_priv_switch_language', array( $this, 'switch_language' ) );
+		add_action( 'admin_post_nopriv_switch_language', array( $this, 'switch_language' ) );
 		add_action( 'admin_post_switch_language', array( $this, 'switch_language' ) );
 
 		add_action( 'wp_enqueue_scripts', array( $this, 'scripts' ) );
