@@ -129,7 +129,9 @@ class HM_Lang_Detect {
 		// Display a dismissable notice with URL to detected lang page
 		ob_start(); ?>
 		<div class="hm-lang-switcher">
+			<div class="hm-lang-switcher-inner">
 			<p><?php echo $notice; ?> <a href="<?php echo esc_url( wp_nonce_url( add_query_arg( array( 'action' => 'switch_language', 'hm_lang' => key( $lang ) ), admin_url( 'admin-post.php' ) ), 'hm_switch_lang_action', 'hm_switch_lang_nonce' ) ); ?>"><?php echo esc_html( current( $lang ) ); ?></a> <a href="#" id="dismiss">Dismiss</a></p>
+			</div>
 		</div>
 
 		<?php echo ob_get_clean();
