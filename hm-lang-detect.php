@@ -55,30 +55,10 @@ class HM_Lang_Detect {
 
 		add_action( 'wp_enqueue_scripts', array( $this, 'scripts' ) );
 
-		add_action( 'init', array( $this, 'schedule_backdrop_task' ) );
-
 		add_filter( 'body_classes', 'body_classes' );
 
 		add_filter( 'heartbeat_received', array( $this, 'heartbeat_receive' ), 10, 2 );
 		add_filter( 'heartbeat_received_no_priv', array( $this, 'heartbeat_receive' ), 10, 2 );
-
-	}
-
-	/**
-	 * Schedule the geocoding task.
-	 */
-	public function schedule_backdrop_task() {
-
-		require_once plugin_dir_path( __FILE__ ) . 'inc/class-geocoder.php';
-
-		require_once plugin_dir_path( __FILE__ ) . 'inc/lib/backdrop/hm-backdrop.php';
-
-		$this->geocoder = new \HMLanguageDetect\GeoCoder( $this->get_ip_address() );
-
-		if ( ! get_option( 'visitor_geoip_' . $this->get_ip_address() ) ) {
-			$task = new \HM\Backdrop\Task( array( $this->geocoder, 'get_visitor_geoip_data' ) );
-			$task->schedule();
-		}
 
 	}
 
