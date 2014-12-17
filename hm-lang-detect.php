@@ -55,30 +55,10 @@ class HM_Lang_Detect {
 
 		add_action( 'wp_enqueue_scripts', array( $this, 'scripts' ) );
 
-		add_action( 'init', array( $this, 'schedule_backdrop_task' ) );
-
 		add_filter( 'body_classes', 'body_classes' );
 
 		add_filter( 'heartbeat_received', array( $this, 'heartbeat_receive' ), 10, 2 );
 		add_filter( 'heartbeat_received_no_priv', array( $this, 'heartbeat_receive' ), 10, 2 );
-
-	}
-
-	/**
-	 * Schedule the geocoding task.
-	 */
-	public function schedule_backdrop_task() {
-
-		require_once plugin_dir_path( __FILE__ ) . 'inc/class-geocoder.php';
-
-		require_once plugin_dir_path( __FILE__ ) . 'inc/lib/backdrop/hm-backdrop.php';
-
-		$this->geocoder = new \HMLanguageDetect\GeoCoder( $this->get_ip_address() );
-
-		if ( ! get_option( 'visitor_geoip_' . $this->get_ip_address() ) ) {
-			$task = new \HM\Backdrop\Task( array( $this->geocoder, 'get_visitor_geoip_data' ) );
-			$task->schedule();
-		}
 
 	}
 
@@ -179,19 +159,18 @@ class HM_Lang_Detect {
 
 		if ( isset( $_COOKIE['hm_visitor_lang'] ) ) {
 			return $_COOKIE['hm_visitor_lang'];
-		} elseif ( $geoip_data = get_option( 'visitor_geoip_' . $this->get_ip_address() ) ) {
+		}
 
-			global $wp;
-			$current_lang = ( 0 < strlen( $wp->request ) ) ? $wp->request : 'en';
+		global $wp;
+		$current_lang = ( 0 < strlen( $wp->request ) ) ? $wp->request : 'en';
 
-			// If we're not on the home page already and not on a lang page, redirect to home
-			if ( ! is_404() && ! in_array( $current_lang, array_keys( $this->supported_languages ) ) ) {
-				wp_redirect( home_url() );exit;
-			}
+		// If we're not on the home page already and not on a lang page, redirect to home
+		if ( ! is_404() && ! in_array( $current_lang, array_keys( $this->supported_languages ) ) ) {
+			wp_redirect( home_url() );exit;
+		}
 
-			if ( $current_lang !== key( $this->get_country_lang() ) ) {
-				$this->prompt_language( $this->get_country_lang() );
-			}
+		if ( $current_lang !== key( $this->get_country_lang() ) ) {
+			$this->prompt_language( $this->get_country_lang() );
 		}
 	}
 
@@ -240,11 +219,15 @@ class HM_Lang_Detect {
 	 */
 	public function get_visitor_country() {
 
-		if ( $geoip_data = get_option( 'visitor_geoip_' . $this->get_ip_address() ) ) {
-			return $geoip_data->country_name;
+		require_once dirname( __FILE__ ) . '/inc/lib/geoiploc.php';
+
+		$country = \GeoIPLoc\getCountryFromIP( $this->get_ip_address(), 'name' );
+
+		if ( ! $country || $country === 'Reserved' ) {
+			return '';
 		}
 
-		return '';
+		return $country;
 	}
 
 	/**
