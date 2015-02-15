@@ -58,7 +58,7 @@ class HM_Lang_Detect {
 		add_filter( 'body_classes', 'body_classes' );
 
 		add_filter( 'heartbeat_received', array( $this, 'heartbeat_receive' ), 10, 2 );
-		add_filter( 'heartbeat_received_no_priv', array( $this, 'heartbeat_receive' ), 10, 2 );
+		add_filter( 'heartbeat_nopriv_received', array( $this, 'heartbeat_receive' ), 10, 2 );
 
 	}
 
